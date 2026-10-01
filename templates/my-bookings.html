@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Bookings - Railway Reservation System</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Times New Roman", serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px 20px 20px 20px;
+            border-bottom: 3px solid gray;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 40px;
+        }
+
+        .nav a {
+            margin-left: 25px;
+            font-size: 17px;
+            color: blue;
+        }
+
+        .main {
+            flex: 1;
+            padding: 45px 20px;
+            text-align: center;
+        }
+
+        .main h2 {
+            font-size: 32px;
+            margin-bottom: 35px;
+        }
+
+        .booking-container {
+            width: 90%;
+            max-width: 1100px;
+            margin: auto;
+            border: 2px solid black;
+            padding: 25px;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 14px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #eeeeee;
+            font-size: 17px;
+        }
+
+        td {
+            font-size: 16px;
+        }
+
+        .status {
+            font-weight: bold;
+        }
+
+        .cancel {
+            color: blue;
+        }
+
+        .footer {
+            border-top: 3px solid black;
+            text-align: center;
+            padding: 35px;
+            font-size: 14px;
+        }
+
+    
+        .flash {
+            text-align: center;
+            color: #8a0000;
+            background: #fff3f3;
+            border: 1px solid #d99;
+            padding: 10px;
+            margin: 15px auto;
+            width: 80%;
+            font-size: 17px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+
+        <h1>RAILWAY RESERVATION SYSTEM</h1>
+
+        <div class="nav">
+            {% if session.user_id %}
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('book_ticket') }}">Book Tickets</a>
+            <a href="{{ url_for('my_bookings') }}">My Bookings</a>
+            <a href="{{ url_for('cancellation') }}">Cancellation</a>
+            <a href="{{ url_for('pnr_status') }}">PNR Status</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('pnr_status') }}">PNR Status</a>
+            <a href="{{ url_for('login') }}">Login</a>
+            {% endif %}
+        </div>
+
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="flash">
+        {% for m in messages %}<div>{{ m }}</div>{% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="main">
+
+        <h2>MY BOOKINGS</h2>
+
+        <div class="booking-container">
+
+            {% if bookings %}
+            <table>
+                <tr>
+                    <th>PNR</th>
+                    <th>Train Number</th>
+                    <th>Train Name</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>Date</th>
+                    <th>Class</th>
+                    <th>Seats</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+                {% for b in bookings %}
+                <tr>
+                    <td>{{ b.pnr_number }}</td>
+                    <td>{{ b.train_number }}</td>
+                    <td>{{ b.train_name }}</td>
+                    <td>{{ b.source_station }}</td>
+                    <td>{{ b.destination_station }}</td>
+                    <td>{{ b.journey_date.strftime('%d-%m-%Y') }}</td>
+                    <td>{{ b.class_name|upper }}</td>
+                    <td>{{ b.seat_count }}</td>
+                    <td class="status">{{ b.booking_status }}</td>
+                    <td>
+                        {% if b.booking_status == 'Confirmed' %}
+                        <a class="cancel" href="{{ url_for('cancellation', pnr=b.pnr_number) }}">Cancel</a>
+                        {% else %}-{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% else %}
+            <p>You have no bookings yet.
+               <a href="{{ url_for('book_ticket') }}">Book a ticket</a></p>
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <div class="footer">
+
+        © 2026 Railway Reservation System | All Rights Reserved
+
+    </div>
+
+</body>
+</html>

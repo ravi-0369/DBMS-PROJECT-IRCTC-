@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Book Tickets - Railway Reservation System</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Times New Roman", serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 25px 20px 20px 20px;
+            border-bottom: 3px solid gray;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 40px;
+        }
+
+        .nav a {
+            margin-left: 25px;
+            font-size: 17px;
+            color: blue;
+        }
+
+        .main {
+            flex: 1;
+            padding: 45px 20px;
+            text-align: center;
+        }
+
+        .main h2 {
+            font-size: 32px;
+            margin-bottom: 35px;
+        }
+
+        .booking-box {
+            width: 550px;
+            margin: auto;
+            border: 2px solid black;
+            padding: 35px;
+            text-align: left;
+        }
+
+        .form-group {
+            margin-bottom: 22px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 11px;
+            font-size: 16px;
+            border: 1px solid gray;
+        }
+
+        .button {
+            width: 100%;
+            padding: 12px;
+            font-size: 17px;
+            border: 1px solid black;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        .button:hover {
+            background-color: black;
+            color: white;
+        }
+
+        .footer {
+            border-top: 3px solid black;
+            text-align: center;
+            padding: 35px;
+            font-size: 14px;
+        }
+
+    
+        .flash {
+            text-align: center;
+            color: #8a0000;
+            background: #fff3f3;
+            border: 1px solid #d99;
+            padding: 10px;
+            margin: 15px auto;
+            width: 80%;
+            font-size: 17px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+
+        <h1>RAILWAY RESERVATION SYSTEM</h1>
+
+        <div class="nav">
+            {% if session.user_id %}
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('book_ticket') }}">Book Tickets</a>
+            <a href="{{ url_for('my_bookings') }}">My Bookings</a>
+            <a href="{{ url_for('cancellation') }}">Cancellation</a>
+            <a href="{{ url_for('pnr_status') }}">PNR Status</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+            {% else %}
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('pnr_status') }}">PNR Status</a>
+            <a href="{{ url_for('login') }}">Login</a>
+            {% endif %}
+        </div>
+
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="flash">
+        {% for m in messages %}<div>{{ m }}</div>{% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="main">
+
+        <h2>BOOK TICKETS</h2>
+
+        <div class="booking-box">
+
+            <form method="POST" action="{{ url_for('search_trains') }}">
+
+                <div class="form-group">
+                    <label for="from">From</label>
+
+                    <select id="from" name="from" required>
+                        <option value="">Select Departure Station</option>
+                        {% for s in stations %}
+                        <option value="{{ s.station_id }}">{{ s.station_name }}</option>
+                        {% endfor %}
+                    </select>
+
+                </div>
+
+                <div class="form-group">
+                    <label for="to">To</label>
+
+                    <select id="to" name="to" required>
+                        <option value="">Select Destination Station</option>
+                        {% for s in stations %}
+                        <option value="{{ s.station_id }}">{{ s.station_name }}</option>
+                        {% endfor %}
+                    </select>
+
+                </div>
+
+                <div class="form-group">
+                    <label for="date">Journey Date</label>
+
+                    <input
+                        type="date"
+                        id="date" name="date"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="class">Class</label>
+
+                    <select id="class" name="class" required>
+                        <option value="">Select Class</option>
+                        <option value="sleeper">Sleeper</option>
+                        <option value="3ac">AC 3 Tier</option>
+                        <option value="2ac">AC 2 Tier</option>
+                        <option value="1ac">AC First Class</option>
+                        <option value="chair-car">Chair Car</option>
+                    </select>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="passengers">
+                        Number of Passengers
+                    </label>
+
+                    <input
+                        type="number"
+                        id="passengers" name="passengers"
+                        min="1"
+                        max="10"
+                        placeholder="Enter number of passengers"
+                        required
+                    >
+
+                </div>
+
+                <button type="submit" class="button">
+                    Search Trains
+                </button>
+
+            </form>
+
+        </div>
+
+    </div>
+
+    <div class="footer">
+
+        © 2026 Railway Reservation System | All Rights Reserved
+
+    </div>
+
+</body>
+</html>
