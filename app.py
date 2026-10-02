@@ -7,7 +7,8 @@ Open: http://127.0.0.1:5000
 import random
 import uuid
 from functools import wraps
-
+import secrets
+import requests
 import mysql.connector
 from flask import (Flask, flash, redirect, render_template, request,
                    session, url_for)
@@ -30,6 +31,152 @@ DB_CONFIG = {
     "password": os.environ["DB_PASSWORD"],
     "database": os.environ.get("DB_NAME", "IRCTC"),
 }
+OTP_VALID_MINUTES = 10
+OTP_MAX_ATTEMPTS = 5
+OTP_RESEND_SECONDS = 60
+
+
+def send_otp_email(to_email, otp):
+    payload = {
+        "sender": {
+            "name": os.environ.get("MAIL_SENDER_NAME", "Railway Reservation System"),
+            "email": os.environ["MAIL_SENDER_EMAIL"],
+        },
+        "to": [{"email": to_email}],
+        "subject": "Your password reset OTP",
+        "htmlContent": (
+            f"<p>Your OTP to reset your password is "
+            f"<b style='font-size:20px'>{otp}</b>.</p>"
+            f"<p>It is valid for {OTP_VALID_MINUTES} minutes. "
+            f"If you did not request this, ignore this email.</p>"
+        ),
+    }
+    try:
+        r = requests.post(
+            "https://api.brevo.com/v3/smtp/email",
+            json=payload,
+            headers={
+                "api-key": os.environ["BREVO_API_KEY"],
+                "accept": "application/json",
+            },
+            timeout=10,
+        )
+        return r.status_code in (200, 201)
+    except requests.RequestException as e:
+        print("Email error:", e)
+        return False
+
+
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = request.form["email"].strip()
+        db = get_db()
+        cur = db.cursor(dictionary=True)
+        try:
+            cur.execute("SELECT user_id FROM Users WHERE email=%s", (email,))
+            user = cur.fetchone()
+            if user:
+                cur.execute(
+                    "SELECT TIMESTAMPDIFF(SECOND, last_sent, NOW()) AS age "
+                    "FROM PasswordResets WHERE email=%s",
+                    (email,),
+                )
+                row = cur.fetchone()
+                if row is None or row["age"] >= OTP_RESEND_SECONDS:
+                    otp = f"{secrets.randbelow(10 ** 6):06d}"
+                    cur.execute(
+                        "INSERT INTO PasswordResets "
+                        "(email, otp_hash, expires_at, attempts, last_sent) "
+                        "VALUES (%s, %s, DATE_ADD(NOW(), INTERVAL %s MINUTE), 0, NOW()) "
+                        "ON DUPLICATE KEY UPDATE otp_hash=VALUES(otp_hash), "
+                        "expires_at=VALUES(expires_at), attempts=0, "
+                        "last_sent=VALUES(last_sent)",
+                        (email, generate_password_hash(otp), OTP_VALID_MINUTES),
+                    )
+                    db.commit()
+                    if not send_otp_email(email, otp):
+                        cur.execute(
+                            "DELETE FROM PasswordResets WHERE email=%s", (email,)
+                        )
+                        db.commit()
+                        flash("Could not send the OTP right now. Please try again later.")
+                        return redirect(url_for("forgot_password"))
+        finally:
+            db.close()
+        session["reset_email"] = email
+        session.pop("reset_ok", None)
+        flash("If this email is registered, an OTP has been sent to it.")
+        return redirect(url_for("verify_otp"))
+    return render_template("forgot-password.html")
+
+
+@app.route("/verify-otp", methods=["GET", "POST"])
+def verify_otp():
+    email = session.get("reset_email")
+    if not email:
+        return redirect(url_for("forgot_password"))
+    if request.method == "POST":
+        otp = request.form["otp"].strip()
+        db = get_db()
+        cur = db.cursor(dictionary=True)
+        try:
+            cur.execute(
+                "SELECT otp_hash, attempts, expires_at > NOW() AS valid "
+                "FROM PasswordResets WHERE email=%s",
+                (email,),
+            )
+            row = cur.fetchone()
+            if not row or not row["valid"] or row["attempts"] >= OTP_MAX_ATTEMPTS:
+                cur.execute("DELETE FROM PasswordResets WHERE email=%s", (email,))
+                db.commit()
+                flash("OTP expired or invalid. Please request a new one.")
+                return redirect(url_for("forgot_password"))
+            if check_password_hash(row["otp_hash"], otp):
+                cur.execute("DELETE FROM PasswordResets WHERE email=%s", (email,))
+                db.commit()
+                session["reset_ok"] = True
+                return redirect(url_for("reset_password"))
+            cur.execute(
+                "UPDATE PasswordResets SET attempts = attempts + 1 WHERE email=%s",
+                (email,),
+            )
+            db.commit()
+            flash("Incorrect OTP. Please try again.")
+        finally:
+            db.close()
+    return render_template("verify-otp.html", email=email)
+
+
+@app.route("/reset-password", methods=["GET", "POST"])
+def reset_password():
+    email = session.get("reset_email")
+    if not email or not session.get("reset_ok"):
+        return redirect(url_for("forgot_password"))
+    if request.method == "POST":
+        password = request.form["password"]
+        confirm = request.form["confirm"]
+        if len(password) < 6:
+            flash("Password must be at least 6 characters.")
+        elif password != confirm:
+            flash("Passwords do not match.")
+        else:
+            db = get_db()
+            cur = db.cursor()
+            try:
+                cur.execute(
+                    "UPDATE Users SET password=%s WHERE email=%s",
+                    (generate_password_hash(password), email),
+                )
+                db.commit()
+            finally:
+                db.close()
+            session.pop("reset_email", None)
+            session.pop("reset_ok", None)
+            flash("Password updated. Please login.")
+            return redirect(url_for("login"))
+    return render_template("reset-password.html")
+
 
 if __name__ == "__main__":
     app.run()
