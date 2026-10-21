@@ -1,0 +1,40 @@
+{% if rows %}
+<div class="table-wrap">
+    <table>
+        <tr>
+            <th>PNR</th>
+            <th>Passenger</th>
+            <th>Train</th>
+            <th>Class</th>
+            <th>Date</th>
+            <th>Seats</th>
+            <th>Amount</th>
+            <th>Status</th>
+            {% if show_actions %}<th>Action</th>{% endif %}
+        </tr>
+        {% for b in rows %}
+        <tr>
+            <td>{{ b.pnr_number }}</td>
+            <td>{{ b.username }}<br><span class="muted">{{ b.email }}</span></td>
+            <td>{{ b.train_number }} - {{ b.train_name }}</td>
+            <td>{{ b.class_name|upper }}</td>
+            <td>{{ b.journey_date.strftime('%d-%m-%Y') }}</td>
+            <td>{{ b.seat_count }}</td>
+            <td>&#8377;{{ b.amount }}</td>
+            <td><b>{{ b.booking_status }}</b></td>
+            {% if show_actions %}
+            <td>
+                {% if b.booking_status == 'Confirmed' %}
+                <form class="inline" method="POST" action="{{ url_for('admin.cancel_booking', booking_id=b.booking_id) }}" onsubmit="return confirm('Cancel booking {{ b.pnr_number }}?')">
+                    <button type="submit" class="btn small danger">Cancel</button>
+                </form>
+                {% else %}-{% endif %}
+            </td>
+            {% endif %}
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% else %}
+<div class="box empty">No bookings found.</div>
+{% endif %}

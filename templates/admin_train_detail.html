@@ -1,0 +1,162 @@
+{% extends "admin_base.html" %}
+{% block title %}{{ train.train_name }}{% endblock %}
+{% block content %}
+
+<p><a href="{{ url_for('admin.trains') }}">&larr; All trains</a></p>
+
+<h2>{{ train.train_number }} - {{ train.train_name }}</h2>
+<p class="muted">{{ train.source_station }} &rarr; {{ train.destination_station }}</p>
+
+<h3>Train details</h3>
+<form class="box" method="POST" action="{{ url_for('admin.edit_train', train_id=train.train_id) }}">
+    <div class="form-row">
+        <div class="field">
+            <label for="train_number">Train number</label>
+            <input type="number" id="train_number" name="train_number" min="1" value="{{ train.train_number }}" required>
+        </div>
+        <div class="field" style="flex-basis: 260px;">
+            <label for="train_name">Train name</label>
+            <input type="text" id="train_name" name="train_name" maxlength="50" value="{{ train.train_name }}" required>
+        </div>
+        <div class="field">
+            <label for="departure_time">Departure</label>
+            <input type="time" id="departure_time" name="departure_time" value="{{ train.departure_time|hhmm }}" required>
+        </div>
+        <div class="field">
+            <label for="arrival_time">Arrival</label>
+            <input type="time" id="arrival_time" name="arrival_time" value="{{ train.arrival_time|hhmm }}" required>
+        </div>
+        <button type="submit" class="btn">Save changes</button>
+    </div>
+</form>
+
+<h3>Classes and seats</h3>
+
+<form class="box form-row" method="GET" action="{{ url_for('admin.train_detail', train_id=train.train_id) }}">
+    <div class="field">
+        <label for="date">Show seat availability for</label>
+        <input type="date" id="date" name="date" value="{{ journey }}">
+    </div>
+    <button type="submit" class="btn">Check date</button>
+</form>
+
+{% if classes %}
+<div class="table-wrap">
+    <table>
+        <tr>
+            <th>Class</th>
+            <th>Fare (per seat)</th>
+            <th>Total seats</th>
+            <th>Booked on {{ journey }}</th>
+            <th>Available on {{ journey }}</th>
+            <th>Action</th>
+        </tr>
+        {% for c in classes %}
+        <tr>
+            <td>{{ c.class_name|upper }}</td>
+            <td>&#8377;{{ c.fare }}</td>
+            <td>{{ c.total_seats }}</td>
+            <td>{{ c.booked|int }}</td>
+            <td><b>{{ c.total_seats - c.booked|int }}</b></td>
+            <td>
+                <form class="inline" method="POST" action="{{ url_for('admin.delete_class', train_id=train.train_id, train_class_id=c.train_class_id) }}" onsubmit="return confirm('Remove the {{ c.class_name|upper }} class? Classes with bookings cannot be removed.')">
+                    <button type="submit" class="btn small danger">Remove</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% else %}
+<div class="box empty">This train has no classes yet, so it will not show up in search. Add one below.</div>
+{% endif %}
+
+<form class="box" method="POST" action="{{ url_for('admin.save_class', train_id=train.train_id) }}">
+    <div class="form-row">
+        <div class="field">
+            <label for="class_name">Class</label>
+            <select id="class_name" name="class_name" required>
+                {% for key, label in class_choices %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label for="fare">Fare per seat (&#8377;)</label>
+            <input type="number" id="fare" name="fare" min="1" required>
+        </div>
+        <div class="field">
+            <label for="total_seats">Total seats</label>
+            <input type="number" id="total_seats" name="total_seats" min="1" required>
+        </div>
+        <button type="submit" class="btn">Save class</button>
+    </div>
+    <p class="muted">Saving a class that already exists updates its fare and total seats. Seats are counted per journey date, so availability above is for the date you picked.</p>
+</form>
+
+<h3>Stops</h3>
+
+<div class="table-wrap">
+    <table>
+        <tr>
+            <th>#</th>
+            <th>Station</th>
+            <th>Arrival</th>
+            <th>Departure</th>
+            <th>Halt (min)</th>
+            <th>Action</th>
+        </tr>
+        {% for s in stops %}
+        <tr>
+            <td>{{ s.stop_number }}</td>
+            <td>{{ s.station_name }}</td>
+            <td>{{ s.arrival_time|hhmm }}</td>
+            <td>{{ s.departure_time|hhmm }}</td>
+            <td>{{ s.halt_minutes }}</td>
+            <td>
+                <form class="inline" method="POST" action="{{ url_for('admin.delete_stop', train_id=train.train_id, stop_id=s.stop_id) }}" onsubmit="return confirm('Remove {{ s.station_name|e }} from this route?')">
+                    <button type="submit" class="btn small danger">Remove</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+<form class="box" method="POST" action="{{ url_for('admin.add_stop', train_id=train.train_id) }}">
+    <div class="form-row">
+        <div class="field" style="flex-basis: 90px;">
+            <label for="stop_number">Position</label>
+            <input type="number" id="stop_number" name="stop_number" min="1" max="99" required>
+        </div>
+        <div class="field">
+            <label for="station_id">Station</label>
+            <select id="station_id" name="station_id" required>
+                <option value="">Select station</option>
+                {% for s in stations %}<option value="{{ s.station_id }}">{{ s.station_name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label for="arrival_time_stop">Arrival</label>
+            <input type="time" id="arrival_time_stop" name="arrival_time" required>
+        </div>
+        <div class="field">
+            <label for="departure_time_stop">Departure</label>
+            <input type="time" id="departure_time_stop" name="departure_time" required>
+        </div>
+        <div class="field" style="flex-basis: 90px;">
+            <label for="halt_minutes">Halt (min)</label>
+            <input type="number" id="halt_minutes" name="halt_minutes" min="0" max="120" value="5" required>
+        </div>
+        <button type="submit" class="btn">Add stop</button>
+    </div>
+    <p class="muted">The stop is inserted at that position and later stops move down by one. The first stop is the origin and the last stop is the destination, so insert new stops between them. Search only matches stations that are stops of the train.</p>
+</form>
+
+<h3>Delete train</h3>
+<div class="box">
+    <form method="POST" action="{{ url_for('admin.delete_train', train_id=train.train_id) }}" onsubmit="return confirm('Delete this train with its classes and stops?')">
+        <p>Removes the train, its classes and its stops. Trains with any booking records cannot be deleted.</p>
+        <button type="submit" class="btn danger">Delete train</button>
+    </form>
+</div>
+
+{% endblock %}

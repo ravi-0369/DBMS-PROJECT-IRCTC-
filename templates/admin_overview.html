@@ -1,0 +1,20 @@
+{% extends "admin_base.html" %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+
+<h2>OVERVIEW</h2>
+
+<div class="stats">
+    <div class="stat"><b>{{ stats.users }}</b>Users</div>
+    <div class="stat"><b>{{ stats.trains }}</b>Trains</div>
+    <div class="stat"><b>{{ stats.stations }}</b>Stations</div>
+    <div class="stat"><b>{{ stats.confirmed }}</b>Confirmed bookings</div>
+    <div class="stat"><b>{{ stats.cancelled }}</b>Cancelled bookings</div>
+    <div class="stat"><b>&#8377;{{ stats.revenue }}</b>Revenue (confirmed)</div>
+</div>
+
+<h3>Latest bookings</h3>
+{% with rows=recent, show_actions=false %}{% include "admin_booking_table.html" %}{% endwith %}
+<a class="btn" href="{{ url_for('admin.bookings') }}">All bookings</a>
+
+{% endblock %}

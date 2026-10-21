@@ -1,0 +1,77 @@
+{% extends "admin_base.html" %}
+{% block title %}Trains{% endblock %}
+{% block content %}
+
+<h2>TRAINS</h2>
+
+<form class="box" method="POST" action="{{ url_for('admin.add_train') }}">
+    <div class="form-row">
+        <div class="field">
+            <label for="train_number">Train number</label>
+            <input type="number" id="train_number" name="train_number" min="1" required>
+        </div>
+        <div class="field" style="flex-basis: 260px;">
+            <label for="train_name">Train name</label>
+            <input type="text" id="train_name" name="train_name" maxlength="50" required>
+        </div>
+        <div class="field">
+            <label for="source">From</label>
+            <select id="source" name="source" required>
+                <option value="">Select station</option>
+                {% for s in stations %}<option value="{{ s.station_id }}">{{ s.station_name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label for="destination">To</label>
+            <select id="destination" name="destination" required>
+                <option value="">Select station</option>
+                {% for s in stations %}<option value="{{ s.station_id }}">{{ s.station_name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label for="departure_time">Departure</label>
+            <input type="time" id="departure_time" name="departure_time" required>
+        </div>
+        <div class="field">
+            <label for="arrival_time">Arrival</label>
+            <input type="time" id="arrival_time" name="arrival_time" required>
+        </div>
+        <button type="submit" class="btn">Add train</button>
+    </div>
+    <p class="muted">After adding a train, open it to add classes with seats and any intermediate stops. A train appears in search once it has at least one class.</p>
+</form>
+
+{% if trains %}
+<div class="table-wrap">
+    <table>
+        <tr>
+            <th>No.</th>
+            <th>Name</th>
+            <th>Route</th>
+            <th>Departure</th>
+            <th>Arrival</th>
+            <th>Classes</th>
+            <th>Total seats</th>
+            <th>Stops</th>
+            <th>Manage</th>
+        </tr>
+        {% for t in trains %}
+        <tr>
+            <td>{{ t.train_number }}</td>
+            <td>{{ t.train_name }}</td>
+            <td>{{ t.source_station }} &rarr; {{ t.destination_station }}</td>
+            <td>{{ t.departure_time|hhmm }}</td>
+            <td>{{ t.arrival_time|hhmm }}</td>
+            <td>{{ t.classes }}</td>
+            <td>{{ t.seats }}</td>
+            <td>{{ t.stops }}</td>
+            <td><a class="btn small" href="{{ url_for('admin.train_detail', train_id=t.train_id) }}">Open</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+{% else %}
+<div class="box empty">No trains yet. Add the first one above.</div>
+{% endif %}
+
+{% endblock %}

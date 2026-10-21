@@ -206,6 +206,20 @@
 
             </div>
 
+            {% if session.is_admin %}
+            <div class="card">
+
+                <h3>ADMIN PANEL</h3>
+
+                <p>
+                    Manage users, trains, seats and bookings.
+                </p>
+
+                <a href="{{ url_for('admin.dashboard') }}">Open Admin</a>
+
+            </div>
+            {% endif %}
+
         </div>
 
     </div>

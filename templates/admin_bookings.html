@@ -1,0 +1,28 @@
+{% extends "admin_base.html" %}
+{% block title %}Bookings{% endblock %}
+{% block content %}
+
+<h2>BOOKINGS</h2>
+
+<form class="box form-row" method="GET" action="{{ url_for('admin.bookings') }}">
+    <div class="field">
+        <label for="q">PNR, name or email</label>
+        <input type="text" id="q" name="q" value="{{ q }}">
+    </div>
+    <div class="field" style="flex-basis: 180px;">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+            <option value="">All</option>
+            <option value="Confirmed" {% if status == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+            <option value="Cancelled" {% if status == 'Cancelled' %}selected{% endif %}>Cancelled</option>
+        </select>
+    </div>
+    <button type="submit" class="btn">Filter</button>
+    {% if q or status %}<a class="btn" href="{{ url_for('admin.bookings') }}">Clear</a>{% endif %}
+</form>
+
+<p class="muted">Showing up to 200 bookings, newest journey date first.</p>
+
+{% with rows=bookings, show_actions=true %}{% include "admin_booking_table.html" %}{% endwith %}
+
+{% endblock %}

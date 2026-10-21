@@ -11,6 +11,8 @@ from flask import (Flask, flash, redirect, render_template, request,
                    session, url_for)
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from admin import create_admin_blueprint
+
 app = Flask(__name__)
 app.secret_key = os.environ["SECRET_KEY"]
 app.config.update(
@@ -169,6 +171,7 @@ def login():
         if user and check_password_hash(user["password"], request.form["password"]):
             session["user_id"] = user["user_id"]
             session["username"] = user["username"]
+            session["is_admin"] = bool(user.get("is_admin"))
             return redirect(url_for("dashboard"))
         flash("Invalid email or password.")
     return render_template("login.html")
@@ -344,42 +347,84 @@ def search_trains():
     f = request.form
     journey_date = parse_journey_date(f.get("date"))
     passengers = parse_passengers(f.get("passengers"))
+
     if journey_date is None:
         flash("Please choose a valid journey date within the next 120 days.")
         return redirect(url_for("book_ticket"))
+
     if passengers is None:
         flash("Passengers must be between 1 and 10.")
         return redirect(url_for("book_ticket"))
 
     db = get_db()
     cur = db.cursor(dictionary=True)
+
     cur.execute("""
-        SELECT t.train_number, t.train_name,
-               s1.station_name AS source_station,
-               s2.station_name AS destination_station,
-               t.departure_time, t.arrival_time,
-               tc.train_class_id, tc.class_name, tc.fare,
-               tc.total_seats - COALESCE((
-                   SELECT SUM(b.seat_count) FROM Bookings b
-                   WHERE b.train_class_id = tc.train_class_id
-                     AND b.journey_date = %s
-                     AND b.booking_status = 'Confirmed'
-               ), 0) AS available_seats
+        SELECT
+            t.train_number,
+            t.train_name,
+
+            sf.station_name AS source_station,
+            st.station_name AS destination_station,
+
+            tsf.departure_time AS departure_time,
+            tst.arrival_time AS arrival_time,
+
+            tc.train_class_id,
+            tc.class_name,
+            tc.fare,
+
+            tc.total_seats - COALESCE((
+                SELECT SUM(b.seat_count)
+                FROM Bookings b
+                WHERE b.train_class_id = tc.train_class_id
+                  AND b.journey_date = %s
+                  AND b.booking_status = 'Confirmed'
+            ), 0) AS available_seats
+
         FROM Trains t
-        JOIN Stations s1 ON t.source_station_id = s1.station_id
-        JOIN Stations s2 ON t.destination_station_id = s2.station_id
-        JOIN TrainClasses tc ON t.train_id = tc.train_id
-        WHERE s1.station_id = %s
-          AND s2.station_id = %s
+
+        JOIN TrainStops tsf
+            ON t.train_id = tsf.train_id
+
+        JOIN TrainStops tst
+            ON t.train_id = tst.train_id
+
+        JOIN Stations sf
+            ON tsf.station_id = sf.station_id
+
+        JOIN Stations st
+            ON tst.station_id = st.station_id
+
+        JOIN TrainClasses tc
+            ON t.train_id = tc.train_id
+
+        WHERE tsf.station_id = %s
+          AND tst.station_id = %s
+          AND tsf.stop_number < tst.stop_number
           AND tc.class_name = %s
+
         HAVING available_seats >= %s
-    """, (journey_date, f["from"], f["to"], f["class"], passengers))
+
+        ORDER BY tsf.departure_time
+
+    """, (
+        journey_date,
+        f["from"],
+        f["to"],
+        f["class"],
+        passengers
+    ))
+
     trains = cur.fetchall()
     db.close()
 
-    return render_template("search-results.html", trains=trains,
-                           date=journey_date.isoformat(), passengers=passengers)
-
+    return render_template(
+        "search-results.html",
+        trains=trains,
+        date=journey_date.isoformat(),
+        passengers=passengers
+    )
 
 @app.route("/book", methods=["POST"])
 @login_required
@@ -492,6 +537,9 @@ def cancellation():
         finally:
             db.close()
     return render_template("cancellation.html")
+
+
+app.register_blueprint(create_admin_blueprint(get_db))
 
 
 if __name__ == "__main__":

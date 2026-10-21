@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin{% endblock %} - Railway Reservation System</title>
+
+    <style>
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: "Times New Roman", serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            padding: 25px 20px 20px 20px;
+            border-bottom: 3px solid gray;
+        }
+
+        .header h1 { margin: 0; font-size: 40px; }
+
+        .nav a { margin-left: 25px; font-size: 17px; color: blue; }
+        .nav a.current { color: black; font-weight: bold; text-decoration: none; }
+
+        .main {
+            flex: 1;
+            width: 92%;
+            max-width: 1150px;
+            margin: 0 auto;
+            padding: 40px 0;
+        }
+
+        .main h2 { font-size: 30px; margin: 0 0 25px 0; }
+        .main h3 { font-size: 22px; margin: 32px 0 12px 0; }
+
+        .box { border: 2px solid black; padding: 22px; margin-bottom: 28px; }
+
+        .table-wrap {
+            overflow-x: auto;
+            border: 2px solid black;
+            padding: 16px;
+            margin-bottom: 28px;
+        }
+
+        table { width: 100%; border-collapse: collapse; }
+
+        th, td {
+            border: 1px solid black;
+            padding: 10px 12px;
+            text-align: center;
+            font-size: 16px;
+        }
+
+        th { background-color: #eeeeee; }
+
+        .form-row { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+        .field { display: flex; flex-direction: column; flex: 1 1 150px; }
+        .field label { font-weight: bold; margin-bottom: 6px; }
+
+        input, select {
+            width: 100%;
+            padding: 9px;
+            font-size: 16px;
+            font-family: inherit;
+            border: 1px solid gray;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 9px 18px;
+            font-size: 16px;
+            font-family: inherit;
+            border: 1px solid black;
+            background: white;
+            color: black;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn:hover { background: black; color: white; }
+        .btn.danger { border-color: #8a0000; color: #8a0000; }
+        .btn.danger:hover { background: #8a0000; color: white; }
+        .btn.small { padding: 5px 12px; font-size: 15px; }
+
+        form.inline { display: inline; }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+            gap: 18px;
+            margin-bottom: 28px;
+        }
+
+        .stat { border: 2px solid black; padding: 18px; text-align: center; font-size: 17px; }
+        .stat b { display: block; font-size: 32px; margin-bottom: 4px; }
+
+        .muted { color: #555; font-size: 15px; }
+        .empty { text-align: center; padding: 20px; }
+
+        .flash {
+            text-align: center;
+            color: #8a0000;
+            background: #fff3f3;
+            border: 1px solid #d99;
+            padding: 10px;
+            margin: 15px auto;
+            width: 80%;
+            font-size: 17px;
+        }
+
+        .footer {
+            border-top: 3px solid black;
+            text-align: center;
+            padding: 35px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 700px) {
+            .header h1 { font-size: 28px; }
+            .nav a { margin: 0 14px 0 0; }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+
+        <h1>ADMIN PANEL</h1>
+
+        <div class="nav">
+            {% set ep = request.endpoint or '' %}
+            <a href="{{ url_for('admin.dashboard') }}" {% if ep == 'admin.dashboard' %}class="current"{% endif %}>Overview</a>
+            <a href="{{ url_for('admin.users') }}" {% if ep == 'admin.users' %}class="current"{% endif %}>Users</a>
+            <a href="{{ url_for('admin.trains') }}" {% if ep in ('admin.trains', 'admin.train_detail') %}class="current"{% endif %}>Trains</a>
+            <a href="{{ url_for('admin.stations') }}" {% if ep == 'admin.stations' %}class="current"{% endif %}>Stations</a>
+            <a href="{{ url_for('admin.bookings') }}" {% if ep == 'admin.bookings' %}class="current"{% endif %}>Bookings</a>
+            <a href="{{ url_for('dashboard') }}">Back to site</a>
+            <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+
+    </div>
+
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="flash">
+        {% for m in messages %}<div>{{ m }}</div>{% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
+
+    <div class="main">
+        {% block content %}{% endblock %}
+    </div>
+
+    <div class="footer">
+
+        © 2026 Railway Reservation System | All Rights Reserved
+
+    </div>
+
+</body>
+</html>

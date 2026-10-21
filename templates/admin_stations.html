@@ -1,0 +1,52 @@
+{% extends "admin_base.html" %}
+{% block title %}Stations{% endblock %}
+{% block content %}
+
+<h2>STATIONS</h2>
+
+<form class="box" method="POST" action="{{ url_for('admin.add_station') }}">
+    <div class="form-row">
+        <div class="field" style="flex-basis: 240px;">
+            <label for="station_name">Station name</label>
+            <input type="text" id="station_name" name="station_name" maxlength="50" required>
+        </div>
+        <div class="field">
+            <label for="city">City</label>
+            <input type="text" id="city" name="city" maxlength="30">
+        </div>
+        <div class="field">
+            <label for="state">State</label>
+            <input type="text" id="state" name="state" maxlength="30">
+        </div>
+        <button type="submit" class="btn">Add station</button>
+    </div>
+</form>
+
+<div class="table-wrap">
+    <table>
+        <tr>
+            <th>ID</th>
+            <th>Station</th>
+            <th>City</th>
+            <th>State</th>
+            <th>Train stops</th>
+            <th>Action</th>
+        </tr>
+        {% for s in stations %}
+        <tr>
+            <td>{{ s.station_id }}</td>
+            <td>{{ s.station_name }}</td>
+            <td>{{ s.city or '-' }}</td>
+            <td>{{ s.state or '-' }}</td>
+            <td>{{ s.stops }}</td>
+            <td>
+                <form class="inline" method="POST" action="{{ url_for('admin.delete_station', station_id=s.station_id) }}" onsubmit="return confirm('Delete {{ s.station_name|e }}? Stations used by a train cannot be deleted.')">
+                    <button type="submit" class="btn small danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% endblock %}
